@@ -35,8 +35,11 @@ A lightweight macOS menubar app that turns copied URLs into rich, clickable link
 
 ### From source
 
+Requires access to this repository and authenticated git credentials
+(`gh auth login`, a personal access token, or an SSH key).
+
 ```bash
-git clone https://github.com/edda-xm/linkpretty.git
+git clone git@github.com:edda-xm/linkpretty.git   # or the HTTPS URL
 cd linkpretty
 python3 -m venv .venv
 source .venv/bin/activate
