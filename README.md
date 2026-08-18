@@ -30,8 +30,25 @@ A lightweight macOS menubar app that turns copied URLs into rich, clickable link
 
 1. Download `LinkPretty.dmg` from [Releases](https://github.com/edda-xm/linkpretty/releases)
 2. Open the DMG and drag `LinkPretty.app` to Applications
-3. Launch from Applications
+3. Launch from Applications — see [First launch](#first-launch) below
 4. (Optional) Add to **System Settings → General → Login Items** for auto-start
+
+### First launch
+
+The app is signed with an ad-hoc signature rather than an Apple Developer ID,
+so Gatekeeper reports that it cannot verify the developer the first time you
+open it. Either:
+
+- Right-click `LinkPretty.app` → **Open**, then confirm, or
+- Remove the quarantine flag macOS puts on downloaded files:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/LinkPretty.app
+```
+
+Both approaches deliberately bypass a Gatekeeper check, so only do this for a
+build you trust the origin of. `No such xattr` simply means the flag was not
+set — nothing to do.
 
 ### From source
 
