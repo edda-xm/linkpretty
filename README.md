@@ -104,4 +104,4 @@ create-dmg \
 
 ## License
 
-MIT
+No license specified. All rights reserved until further notice.
