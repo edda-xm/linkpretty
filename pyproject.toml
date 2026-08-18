@@ -1,15 +1,12 @@
 [project]
 name = "linkpretty"
 version = "1.0.0"
-description = "macOS menubar app that converts copied URLs to markdown links"
+description = "macOS menubar app that converts copied URLs into rich, clickable links"
 requires-python = ">=3.10"
 dependencies = [
     "rumps>=0.4.0",
     "pyobjc-framework-Cocoa>=10.0",
 ]
-
-[project.scripts]
-linkpretty = "linkpretty:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

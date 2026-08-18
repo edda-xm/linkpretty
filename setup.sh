@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup script for LinkPretty
+# Setup script for LinkPretty — creates a virtual environment and installs deps.
 
 set -e
 
@@ -13,7 +13,7 @@ echo "📥 Installing dependencies..."
 pip install -q rumps pyobjc-framework-Cocoa
 
 echo "✅ Done! Run with:"
-echo "   source ~/Projects/linkpretty/.venv/bin/activate && python3 ~/Projects/linkpretty/linkpretty.py"
+echo "   source .venv/bin/activate && python3 linkpretty.py"
 echo ""
-echo "To build as a standalone .app, run:"
-echo "   pip install py2app && python3 setup_app.py py2app"
+echo "To build a standalone .app bundle, see the README section"
+echo "'Building the .app bundle' (uses PyInstaller)."
