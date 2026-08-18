@@ -9,7 +9,7 @@ A lightweight macOS menubar app that turns copied URLs into rich, clickable link
 - **Browser-aware** — reads the page title directly from your browser via AppleScript (no network request needed)
 - **Privacy-friendly** — no data leaves your machine unless you opt in to network lookups
 - **Lightweight** — sits in the menubar, 0% CPU when idle
-- **Auto-update check** — notifies you when a new version is available on GitHub
+- **Easy updates** — "Check for updates" opens the releases page in your browser
 
 ## Supported Browsers
 
@@ -28,7 +28,7 @@ A lightweight macOS menubar app that turns copied URLs into rich, clickable link
 
 ### From DMG (recommended)
 
-1. Download `LinkPretty.dmg` from [Releases](https://github.com/eaxmedd/linkpretty/releases)
+1. Download `LinkPretty.dmg` from [Releases](https://github.com/edda-xm/linkpretty/releases)
 2. Open the DMG and drag `LinkPretty.app` to Applications
 3. Launch from Applications
 4. (Optional) Add to **System Settings → General → Login Items** for auto-start
@@ -36,7 +36,7 @@ A lightweight macOS menubar app that turns copied URLs into rich, clickable link
 ### From source
 
 ```bash
-git clone https://github.com/eaxmedd/linkpretty.git
+git clone https://github.com/edda-xm/linkpretty.git
 cd linkpretty
 python3 -m venv .venv
 source .venv/bin/activate
@@ -99,7 +99,7 @@ create-dmg \
 
 - **No telemetry** — the app does not phone home, track usage, or collect any data
 - **Network requests** — only made when "Look up titles over the network" is enabled (off by default), and only to the URL you copied
-- **Update checks** — queries the GitHub Releases API only when you click "Check for updates" or at launch (only checks version number, sends no personal data)
+- **Update checks** — "Check for updates" simply opens the GitHub releases page in your browser. The app makes no API calls and sends no data. The repository is private, so viewing releases requires access
 - **Clipboard access** — reads clipboard only to detect URLs; writes back only when a title is successfully resolved
 
 ## License
