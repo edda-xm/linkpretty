@@ -1,6 +1,6 @@
 [project]
 name = "linkpretty"
-version = "1.0.1"
+version = "1.1.0"
 description = "macOS menubar app that converts copied URLs into rich, clickable links"
 requires-python = ">=3.10"
 dependencies = [

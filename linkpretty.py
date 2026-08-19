@@ -13,6 +13,7 @@ import re
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 from html import escape as html_escape
 from html.parser import HTMLParser
@@ -21,10 +22,11 @@ import AppKit
 import rumps
 
 APP_NAME = "LinkPretty"
-APP_VERSION = "1.0.1"
-# GitHub owner/repo — the releases page opened by "Check for updates".
+APP_VERSION = "1.1.0"
+# GitHub owner/repo — used for update checks (public repo).
 GITHUB_REPO = "edda-xm/linkpretty"
 GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 POLL_INTERVAL = 0.5
 FEEDBACK_SECONDS = 1.0
 
@@ -253,6 +255,47 @@ def fetch_title_http(url: str, timeout: float = 5.0) -> str | None:
 
 
 # --------------------------------------------------------------------------- #
+# Update checker
+# --------------------------------------------------------------------------- #
+
+def check_for_update() -> tuple[str, str] | None:
+    """Check GitHub for a newer release. Returns (version, html_url) or None.
+
+    Returns None both when up-to-date and on failure (network error, timeout,
+    etc.). Raises a ValueError with the releases URL on HTTP 403 (rate limit)
+    so the caller can offer to open the page instead.
+    """
+    try:
+        req = urllib.request.Request(
+            GITHUB_API_URL,
+            headers={
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": f"{APP_NAME}/{APP_VERSION}",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        tag = data.get("tag_name", "").lstrip("v")
+        html_url = data.get("html_url", "")
+        if tag and _version_newer(tag, APP_VERSION):
+            return (tag, html_url)
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            raise ValueError(GITHUB_RELEASES_URL)
+    except Exception:
+        pass
+    return None
+
+
+def _version_newer(remote: str, local: str) -> bool:
+    """Simple semver comparison: is remote > local?"""
+    try:
+        return [int(x) for x in remote.split(".")] > [int(x) for x in local.split(".")]
+    except (ValueError, TypeError):
+        return False
+
+
+# --------------------------------------------------------------------------- #
 # App
 # --------------------------------------------------------------------------- #
 
@@ -283,14 +326,14 @@ class LinkPrettyApp(rumps.App):
         fallback_item.state = bool(self.settings.get("http_fallback"))
 
         version_item = rumps.MenuItem(f"Version {APP_VERSION}")
-        check_update_item = rumps.MenuItem(
-            "Check for updates…", callback=self._open_releases_page
+        self._check_update_item = rumps.MenuItem(
+            "Check for updates…", callback=self._check_for_update_clicked
         )
 
         self.menu = [
             enabled_item, None,
             fallback_item, None,
-            check_update_item, version_item,
+            self._check_update_item, version_item,
         ]
 
         # Polling runs on the main thread; it is only an integer comparison.
@@ -299,15 +342,52 @@ class LinkPrettyApp(rumps.App):
 
     # -- updates ------------------------------------------------------------ #
 
-    def _open_releases_page(self, _sender):
-        """Open the GitHub releases page — no version check, no API calls.
+    def _check_for_update_clicked(self, sender):
+        """User-initiated update check against GitHub Releases API."""
+        sender.title = "Checking…"
+        threading.Thread(target=self._run_update_check, daemon=True).start()
 
-        The repository is private, so an anonymous lookup could not report
-        anything useful. Users with access see the releases; users without are
-        prompted by GitHub to request access.
-        """
+    def _run_update_check(self):
+        rate_limited_url = None
+        try:
+            result = check_for_update()
+        except ValueError as e:
+            # 403 rate limit — fall back to opening the releases page
+            result = None
+            rate_limited_url = str(e)
+
+        def finish():
+            self._check_update_item.title = "Check for updates…"
+            self._check_update_item.set_callback(self._check_for_update_clicked)
+
+            if rate_limited_url:
+                rumps.notification(
+                    APP_NAME, "Could not check automatically",
+                    "Opening the releases page instead (API rate limit).",
+                )
+                self._open_url(rate_limited_url)
+                return
+
+            if result is None:
+                rumps.notification(
+                    APP_NAME, "No update found",
+                    f"You are running the latest version ({APP_VERSION}).",
+                )
+                return
+
+            version, url = result
+            self._check_update_item.title = f"⬆️ Download v{version}"
+            self._check_update_item.set_callback(lambda _: self._open_url(url))
+            rumps.notification(
+                APP_NAME, f"Version {version} available",
+                "Click the menu item to download.",
+            )
+
+        on_main_thread(finish)
+
+    def _open_url(self, url: str):
         AppKit.NSWorkspace.sharedWorkspace().openURL_(
-            AppKit.NSURL.URLWithString_(GITHUB_RELEASES_URL)
+            AppKit.NSURL.URLWithString_(url)
         )
 
     # -- menu actions ------------------------------------------------------- #
@@ -372,11 +452,12 @@ class LinkPrettyApp(rumps.App):
             return
 
         self._lookup_running = True
+        self._lookup_change_count = change_count
         threading.Thread(
-            target=self._lookup_and_apply, args=(content,), daemon=True
+            target=self._lookup_and_apply, args=(content, change_count), daemon=True
         ).start()
 
-    def _lookup_and_apply(self, url: str):
+    def _lookup_and_apply(self, url: str, original_change_count: int):
         """Runs off the main thread: AppleScript and HTTP can both block."""
         try:
             title = fetch_title_browser(url)
@@ -389,6 +470,12 @@ class LinkPrettyApp(rumps.App):
             self._lookup_running = False
             if not title:
                 return
+            # Don't overwrite clipboard if it changed while we were looking up,
+            # or if the user disabled the app in the meantime.
+            if not self.enabled:
+                return
+            if self._pasteboard.changeCount() != original_change_count:
+                return
             self._write_link(title, url)
             self.title = ICON_SUCCESS
             self._feedback_until = time.monotonic() + FEEDBACK_SECONDS
@@ -397,6 +484,13 @@ class LinkPrettyApp(rumps.App):
 
 
 if __name__ == "__main__":
-    # Hide from Dock — menubar only.
-    AppKit.NSBundle.mainBundle().infoDictionary()["LSUIElement"] = "1"
-    LinkPrettyApp().run()
+    app = LinkPrettyApp()
+
+    # Hide from Dock AFTER the status item is created — macOS 26 requires
+    # flavor=3 (Foreground) registration for the icon to appear, so we start
+    # as a normal app and switch to Accessory policy before entering the
+    # run loop.
+    nsapp = AppKit.NSApplication.sharedApplication()
+    nsapp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
+
+    app.run()
