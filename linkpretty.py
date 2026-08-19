@@ -21,7 +21,7 @@ import AppKit
 import rumps
 
 APP_NAME = "LinkPretty"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 # GitHub owner/repo — the releases page opened by "Check for updates".
 GITHUB_REPO = "edda-xm/linkpretty"
 GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
