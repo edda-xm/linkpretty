@@ -90,7 +90,7 @@ Settings are stored in `~/Library/Application Support/LinkPretty/settings.json`.
 source .venv/bin/activate
 pip install pyinstaller
 pyinstaller --name "LinkPretty" --windowed --onedir \
-  --osx-bundle-identifier "com.eaxmedd.linkpretty" \
+  --osx-bundle-identifier "com.eddaxm.linkpretty" \
   --hidden-import rumps --hidden-import AppKit \
   --icon icon.icns \
   linkpretty.py
